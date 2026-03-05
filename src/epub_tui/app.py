@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from textual.app import App, ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, Footer, DirectoryTree
 from textual.binding import Binding
+
+from epub_tui.reader import ReaderScreen
 
 
 class BrowserScreen(Screen):
@@ -23,7 +23,6 @@ class BrowserScreen(Screen):
     ) -> None:
         path = str(event.path)
         if path.lower().endswith(".epub"):
-            from epub_tui.reader import ReaderScreen
             self.app.push_screen(ReaderScreen(path))
 
 
@@ -37,7 +36,6 @@ class EpubTuiApp(App):
 
     def on_mount(self) -> None:
         if self._epub_path:
-            from epub_tui.reader import ReaderScreen
             self.push_screen(ReaderScreen(self._epub_path))
         else:
             self.push_screen(BrowserScreen())
