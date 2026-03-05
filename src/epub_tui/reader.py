@@ -16,8 +16,8 @@ class ReaderScreen(Screen):
         Binding("p", "prev_chapter", "Prev"),
         Binding("left", "prev_chapter", "Prev"),
         Binding("t", "toggle_sidebar", "TOC"),
-        Binding("escape", "back", "Back"),
-        Binding("q", "back", "Back"),
+        Binding("escape", "app.quit", "Back"),
+        Binding("q", "app.quit", "Back"),
     ]
 
     def __init__(self, epub_path: str) -> None:
@@ -38,7 +38,7 @@ class ReaderScreen(Screen):
         try:
             self._loader.load(self._epub_path)
         except Exception as e:
-            self.query_one("#content", Markdown).update(f"**Error loading EPUB:** {e}")
+            await self.query_one("#content", Markdown).update(f"**Error loading EPUB:** {e}")
             return
 
         self.sub_title = f"{self._loader.title} — {self._loader.author}"
@@ -62,6 +62,15 @@ class ReaderScreen(Screen):
                 "_This EPUB has no readable chapters._"
             )
 
+    def _toc_index_for_chapter(self, chapter_index: int) -> int | None:
+        if self._loader.toc_entries:
+            for i, entry in enumerate(self._loader.toc_entries):
+                if self._loader.find_chapter_index(entry.file_href) == chapter_index:
+                    return i
+            return None
+        else:
+            return chapter_index
+
     async def _load_chapter(self, index: int, fragment: str | None = None) -> None:
         if not self._loader.chapters:
             return
@@ -79,6 +88,10 @@ class ReaderScreen(Screen):
                 return
         # Default: scroll to top
         self.query_one("#content-scroll", VerticalScroll).scroll_home(animate=False)
+
+        toc_idx = self._toc_index_for_chapter(index)
+        if toc_idx is not None:
+            self.query_one("#chapter-list", ListView).index = toc_idx
 
     async def on_list_view_selected(self, event: ListView.Selected) -> None:
         if event.index is None:
@@ -102,9 +115,3 @@ class ReaderScreen(Screen):
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#chapter-list", ListView)
         sidebar.display = not sidebar.display
-
-    def action_back(self) -> None:
-        if len(self.app.screen_stack) > 1:
-            self.app.pop_screen()
-        else:
-            self.app.exit()
