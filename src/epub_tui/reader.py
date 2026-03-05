@@ -32,7 +32,7 @@ class ReaderScreen(Screen):
                 yield Markdown("", id="content")
         yield Footer()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         try:
             self._loader.load(self._epub_path)
         except Exception as e:
@@ -41,45 +41,61 @@ class ReaderScreen(Screen):
 
         self.sub_title = f"{self._loader.title} — {self._loader.author}"
 
-        # Rebuild ListView now that chapters are loaded
         list_view = self.query_one("#chapter-list", ListView)
         list_view.clear()
-        for ch in self._loader.chapters:
-            list_view.append(ListItem(Label(ch.title)))
+
+        if self._loader.toc_entries:
+            for entry in self._loader.toc_entries:
+                indent = "  " * entry.level
+                list_view.append(ListItem(Label(f"{indent}{entry.title}")))
+        else:
+            # Fallback: no TOC, list spine chapters directly
+            for ch in self._loader.chapters:
+                list_view.append(ListItem(Label(ch.title)))
 
         if self._loader.chapters:
-            self._load_chapter(0)
+            await self._load_chapter(0)
         else:
-            self.query_one("#content", Markdown).update(
+            await self.query_one("#content", Markdown).update(
                 "_This EPUB has no readable chapters._"
             )
 
-    def _load_chapter(self, index: int) -> None:
+    async def _load_chapter(self, index: int, fragment: str | None = None) -> None:
         if not self._loader.chapters:
             return
         index = max(0, min(index, len(self._loader.chapters) - 1))
         self._current_index = index
 
+        content = self.query_one("#content", Markdown)
         md_text = self._loader.get_chapter_markdown(index)
-        self.query_one("#content", Markdown).update(md_text)
+        # Must await so the DOM is fully updated before goto_anchor() is called
+        await content.update(md_text)
 
-        # Scroll to top
-        scroll = self.query_one("#content-scroll", VerticalScroll)
-        scroll.scroll_home(animate=False)
+        if fragment:
+            anchor = self._loader.find_anchor_for_fragment(index, fragment)
+            if anchor and content.goto_anchor(anchor):
+                return
+        # Default: scroll to top
+        self.query_one("#content-scroll", VerticalScroll).scroll_home(animate=False)
 
-        # Highlight active chapter in sidebar
-        list_view = self.query_one("#chapter-list", ListView)
-        list_view.index = index
+    async def on_list_view_selected(self, event: ListView.Selected) -> None:
+        if event.index is None:
+            return
 
-    def on_list_view_selected(self, event: ListView.Selected) -> None:
-        if event.index is not None:
-            self._load_chapter(event.index)
+        if self._loader.toc_entries:
+            entry = self._loader.toc_entries[event.index]
+            ch_index = self._loader.find_chapter_index(entry.file_href)
+            if ch_index == -1:
+                return
+            await self._load_chapter(ch_index, entry.fragment)
+        else:
+            await self._load_chapter(event.index)
 
-    def action_next_chapter(self) -> None:
-        self._load_chapter(self._current_index + 1)
+    async def action_next_chapter(self) -> None:
+        await self._load_chapter(self._current_index + 1)
 
-    def action_prev_chapter(self) -> None:
-        self._load_chapter(self._current_index - 1)
+    async def action_prev_chapter(self) -> None:
+        await self._load_chapter(self._current_index - 1)
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#chapter-list", ListView)
