@@ -12,7 +12,9 @@ from epub_tui.epub_loader import EpubLoader
 class ReaderScreen(Screen):
     BINDINGS = [
         Binding("n", "next_chapter", "Next"),
+        Binding("right", "next_chapter", "Next"),
         Binding("p", "prev_chapter", "Prev"),
+        Binding("left", "prev_chapter", "Prev"),
         Binding("t", "toggle_sidebar", "TOC"),
         Binding("escape", "back", "Back"),
         Binding("q", "back", "Back"),
