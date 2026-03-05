@@ -1,0 +1,26 @@
+BrowserScreen {
+    layout: vertical;
+}
+
+BrowserScreen DirectoryTree {
+    height: 1fr;
+}
+
+ReaderScreen {
+    layout: vertical;
+}
+
+ReaderScreen #body {
+    layout: horizontal;
+    height: 1fr;
+}
+
+ReaderScreen #chapter-list {
+    width: 25%;
+    border-right: tall $panel;
+}
+
+ReaderScreen #content-scroll {
+    width: 1fr;
+    padding: 1 2;
+}

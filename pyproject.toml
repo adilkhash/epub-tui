@@ -1,0 +1,20 @@
+[project]
+name = "epub-tui"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "ebooklib>=0.18",
+    "textual>=0.80.0",
+    "beautifulsoup4>=4.12",
+    "html2text>=2024.2.26",
+]
+
+[project.scripts]
+epub-tui = "epub_tui.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/epub_tui"]
