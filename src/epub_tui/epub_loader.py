@@ -57,7 +57,6 @@ class EpubLoader:
 
         # Build chapters from spine order
         self.chapters = []
-        current_title = None
         for item_id, _linear in self._book.spine:
             item = self._book.get_item_with_id(item_id)
             if item is None or item.get_type() != ebooklib.ITEM_DOCUMENT:
@@ -71,17 +70,14 @@ class EpubLoader:
                 or toc_map.get(href_basename)
             )
 
-            if chapter_title is None and current_title is None:
+            if chapter_title is None:
                 continue
-
-            if chapter_title and chapter_title != current_title:
-                current_title = chapter_title
 
             self.chapters.append(
                 Chapter(
                     id=item_id,
-                    title=current_title,
-                    content=item.get_content(),
+                    title=chapter_title,
+                    content=item.get_body_content(),
                 )
             )
 
